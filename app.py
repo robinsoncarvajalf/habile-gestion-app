@@ -5,10 +5,14 @@ import datetime
 st.set_page_config(page_title="Hábile - Gestión e IA", page_icon="🧠", layout="wide")
 
 # --- 1. SISTEMA DE USUARIOS Y AUTENTICACIÓN ---
+# ¡Aquí es donde creas los nuevos usuarios, mi cielo! 
+# Solo debes seguir el formato "usuario": "contraseña". Puedes agregar los que quieras.
 USUARIOS_REGISTRADOS = {
     "katty": "profesora2026",
     "robin": "destiny5070",
-    "tahia": "mama123"
+    "tahia": "mama123",
+    "carolina": "terapeuta2026",  # <--- Ejemplo de nuevo usuario
+    "andrea": "psicologa2026"     # <--- Ejemplo de otro nuevo usuario
 }
 
 if "autenticado" not in st.session_state:
@@ -22,58 +26,69 @@ def cerrar_sesion():
     st.rerun()
 
 # --- 2. BASE DE DATOS SIMULADA POR USUARIO ---
+# Aseguramos que si agregas un usuario arriba, el sistema le cree su espacio automáticamente
 if "datos_usuarios" not in st.session_state:
-    st.session_state.datos_usuarios = {
-        "katty": {
-            "pacientes": {
-                "Facundo": {"edad": 8, "objetivo": "Mejorar la comprensión lectora y atención", "perfil": "Muestra gran interés por los cuentos, pero se distrae a los 10 minutos."},
-                "Gaspar": {"edad": 8, "objetivo": "Desarrollar habilidades de grafomotricidad", "perfil": "Creativo, prefiere actividades visuales. Requiere apoyo en la pinza fina."}
-            },
-            "citas": [
-                {"hora": "09:00", "paciente": "Facundo", "motivo": "Sesión Semanal"},
-                {"hora": "11:30", "paciente": "Gaspar", "motivo": "Evaluación Motriz"}
-            ]
-        },
-        "robin": {
-            "pacientes": {
-                "Lucas": {"edad": 10, "objetivo": "Potenciar el pensamiento lógico-matemático", "perfil": "Muy hábil con la tecnología, responde bien a dinámicas gamificadas."}
-            },
-            "citas": [
-                {"hora": "15:00", "paciente": "Lucas", "motivo": "Refuerzo Académico"}
-            ]
-        },
-        "tahia": {
-            "pacientes": {},
-            "citas": []
-        }
-    }
+    st.session_state.datos_usuarios = {}
 
-# --- 3. LÓGICA DE LA MINI IA ---
+# Inicializar dinámicamente los datos para cada usuario registrado
+for user in USUARIOS_REGISTRADOS.keys():
+    if user not in st.session_state.datos_usuarios:
+        # Datos por defecto para Katty (para que no aparezca vacío al probar)
+        if user == "katty":
+            st.session_state.datos_usuarios[user] = {
+                "pacientes": {
+                    "Facundo": {"edad": 8, "objetivo": "Mejorar la comprensión lectora y atención", "perfil": "Muestra gran interés por los cuentos, pero se distrae a los 10 minutos."},
+                    "Gaspar": {"edad": 8, "objetivo": "Desarrollar habilidades de grafomotricidad", "perfil": "Creativo, prefiere actividades visuales. Requiere apoyo en la pinza fina."}
+                },
+                "citas": [
+                    {"hora": "09:00", "paciente": "Facundo", "motivo": "Sesión Semanal"},
+                    {"hora": "11:30", "paciente": "Gaspar", "motivo": "Evaluación Motriz"}
+                ]
+            }
+        # Datos por defecto para Robin
+        elif user == "robin":
+            st.session_state.datos_usuarios[user] = {
+                "pacientes": {
+                    "Lucas": {"edad": 10, "objetivo": "Potenciar el pensamiento lógico-matemático", "perfil": "Muy hábil con la tecnología, responde bien a dinámicas gamificadas."}
+                },
+                "citas": [
+                    {"hora": "15:00", "paciente": "Lucas", "motivo": "Refuerzo Académico"}
+                ]
+            }
+        # Los usuarios nuevos parten con su agenda y pacientes limpios para que ellos los creen
+        else:
+            st.session_state.datos_usuarios[user] = {
+                "pacientes": {},
+                "citas": []
+            }
+
+# --- 3. LÓGICA DE LA IA MEJORADA (Ahora más flexible) ---
 def respuesta_ia(consulta, paciente_nombre, usuario):
     consulta_clean = consulta.lower()
     pacientes_usuario = st.session_state.datos_usuarios[usuario]["pacientes"]
-    paciente_info = pacientes_usuario.get(paciente_nombre, {"objetivo": "General", "perfil": ""})
+    paciente_info = pacientes_usuario.get(paciente_nombre, {"objetivo": "Desarrollo integral", "perfil": "Sin historial previo"})
     
-    if "actividades para el" in consulta_clean or "desarrollo de actividades" in consulta_clean:
-        dia = "martes"
-        for d in ["lunes", "martes", "miércoles", "jueves", "viernes"]:
-            if d in consulta_clean:
-                dia = d
-                
-        return f"""
-        🤖 **Planificador IA:** Aquí tienes la propuesta para el **{dia.capitalize()}** para el paciente **{paciente_nombre}**:
-        
-        *   **Objetivo a trabajar:** {paciente_info['objetivo']}.
-        
-        **Cronograma Sugerido:**
-        1.  **00-10 min (Inicio/Activación):** Dinámica de inicio rápido acorde a su perfil.
-        2.  **10-30 min (Desarrollo Central):** Actividad enfocada en: *"{paciente_info['objetivo']}"*.
-        3.  **30-40 min (Cierre):** Metacognición y refuerzo positivo.
-        
-        *Consejo de la IA:* Basado en el perfil: *"{paciente_info['perfil']}"*, te sugiero adaptar los estímulos visuales.
-        """
-    else:
-        return f"🤖 **Asistente IA:** Hola. Estoy lista para ayudarte con {paciente_nombre} y su objetivo de '{paciente_info['objetivo']}'. ¿Qué necesitas armar hoy?"
+    # Identificar el día que pide el usuario (busca cualquier coincidencia)
+    dia = "Martes"
+    for d in ["lunes", "martes", "miércoles", "miercoles", "jueves", "viernes", "sábado", "sabado"]:
+        if d in consulta_clean:
+            dia = d.capitalize()
+            if dia == "Miercoles": dia = "Miércoles"
+            if dia == "Sabado": dia = "Sábado"
+
+    # Respuesta inteligente multiuso
+    return f"""
+    🤖 **Planificador IA Hábile:** He procesado tu solicitud para el día **{dia}** enfocada en el paciente **{paciente_nombre}**.
+    
+    * **Enfoque terapéutico:** Teniendo en cuenta su objetivo principal (*"{paciente_info['objetivo']}"*), he diseñado el siguiente bloque de intervención.
+    
+    **Cronograma de Actividades Recomendado:**
+    1.  **Inicio (10 min) - Enfoque y Conexión:** Actividad lúdica rompehielo de baja frustración. Si el perfil lo requiere, usar apoyos visuales o un juego de atención rápida.
+    2.  **Desarrollo (25 min) - Trabajo Central:** Ejercicio segmentado en pasos cortos. Trabajar directamente en el desarrollo de sus habilidades mediante modelamiento y refuerzo positivo.
+    3.  **Cierre (10 min) - Consolidación:** Preguntas de metacognición ("¿Qué aprendimos hoy?") y entrega de un estímulo o refuerzo por su esfuerzo.
+    
+    *💡 Sugerencia del asistente:* Basado en su perfil (*"{paciente_info['perfil']}"*), evita las jornadas muy largas sin pausas y mantén un tono de voz dulce y cercano para asegurar su motivación.
+    """
 
 # --- 4. PANTALLA DE LOGIN ---
 if not st.session_state.autenticado:
@@ -114,6 +129,17 @@ else:
     if menu == "📅 Mi Agenda":
         st.header("Mis Horarios y Citas del Día")
         
+        # Formulario para agregar citas en tiempo real
+        with st.expander("➕ Agregar Nueva Cita a la Agenda"):
+            nueva_hora = st.text_input("Hora (Ej: 16:00)")
+            nuevo_pac = st.text_input("Nombre del Paciente/Alumno")
+            nuevo_mot = st.text_input("Motivo de la sesión")
+            if st.button("Agendar"):
+                if nueva_hora and nuevo_pac:
+                    st.session_state.datos_usuarios[usuario]["citas"].append({"hora": nueva_hora, "paciente": nuevo_pac, "motivo": nuevo_mot})
+                    st.success("¡Cita agendada!")
+                    st.rerun()
+        
         if len(mis_citas) == 0:
             st.info("No tienes citas programadas para hoy.")
         else:
@@ -124,8 +150,21 @@ else:
                     
         st.divider()
         st.header("Mis Pacientes Asignados")
+        
+        # Formulario para agregar pacientes en tiempo real
+        with st.expander("➕ Registrar Nuevo Paciente/Alumno"):
+            p_nombre = st.text_input("Nombre Completo")
+            p_edad = st.number_input("Edad", min_value=1, max_value=100, value=8)
+            p_obj = st.text_area("Objetivo Principal de Intervención")
+            p_perf = st.text_area("Perfil o Diagnóstico Inicial")
+            if st.button("Registrar Paciente"):
+                if p_nombre:
+                    st.session_state.datos_usuarios[usuario]["pacientes"][p_nombre] = {"edad": p_edad, "objetivo": p_obj, "perfil": p_perf}
+                    st.success(f"¡{p_nombre} registrado con éxito!")
+                    st.rerun()
+
         if len(mis_pacientes) == 0:
-            st.warning("Aún no tienes pacientes registrados.")
+            st.warning("Aún no tienes pacientes registrados en tu cuenta.")
         else:
             for nombre, datos in mis_pacientes.items():
                 with st.expander(f"👤 {nombre} (Edad: {datos['edad']} años)"):
@@ -137,7 +176,7 @@ else:
         st.header("Creación de Objetivos e Informes")
         
         if len(mis_pacientes) == 0:
-            st.warning("Debes tener pacientes registrados para usar este módulo.")
+            st.warning("Debes registrar pacientes en la pestaña 'Mi Agenda' para usar este módulo, cielo.")
         else:
             paciente_sel = st.selectbox("Selecciona un Paciente", list(mis_pacientes.keys()))
             info_paciente = mis_pacientes[paciente_sel]
@@ -146,7 +185,7 @@ else:
             
             with tab1:
                 st.subheader(f"Objetivo Actual para {paciente_sel}")
-                nuevo_obj = st.text_area("Editar Objetivo Terapéutico:", value=info_paciente["objetivo"])
+                nuevo_obj = st.text_area("Editar Objetivo Terapéutico:", value=info_paciente["objective"] if "objective" in info_paciente else info_paciente["objetivo"])
                 if st.button("Guardar Objetivo"):
                     st.session_state.datos_usuarios[usuario]["pacientes"][paciente_sel]["objetivo"] = nuevo_obj
                     st.success("¡Objetivo actualizado con éxito!")
@@ -161,12 +200,13 @@ else:
     # --- MÓDULO: ASISTENTE IA ---
     elif menu == "🤖 Asistente IA":
         st.header("Asistente Virtual de Habilidades")
+        st.write("Pídele a la IA que estructure tu día. Ella leerá los objetivos del paciente seleccionado para armarte las actividades.")
         
         if len(mis_pacientes) == 0:
-            st.warning("Registra al menos un paciente para poder consultar a la IA.")
+            st.warning("Registra al menos un paciente en 'Mi Agenda' para poder consultar a la IA.")
         else:
             paciente_ia = st.selectbox("¿Sobre qué paciente vas a consultar?", list(mis_pacientes.keys()))
-            prompt_usuario = st.text_input("¿En qué te ayudo hoy?", placeholder="Ej: Hazme el desarrollo de actividades para el día martes")
+            prompt_usuario = st.text_input("¿En qué te ayudo hoy, corazón?", placeholder="Ej: Hazme el desarrollo de actividades para el día martes")
             
             if st.button("Consultar a la IA ✨"):
                 if prompt_usuario:
@@ -174,4 +214,4 @@ else:
                         resultado = respuesta_ia(prompt_usuario, paciente_ia, usuario)
                         st.markdown(resultado)
                 else:
-                    st.warning("Escribe una pregunta para tu asistente.")
+                    st.warning("Escribe una pregunta para tu asistente, sol.")
