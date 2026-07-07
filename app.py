@@ -4,28 +4,16 @@ import datetime
 # Configuración de la página
 st.set_page_config(page_title="Hábile - Gestión e IA", page_icon="🧠", layout="wide")
 
-# --- 1. BASE DE DATOS DE USUARIOS (Inicialización) ---
-# Creamos un diccionario en el estado de la sesión para que guarde los usuarios nuevos
+# --- 1. BASE DE DATOS DE USUARIOS (Fijos en el código para que no se borren) ---
+# Al dejarlos aquí afuera, el usuario maestro 'robin' nunca se va a borrar, pase lo que pase.
 if "usuarios_registrados" not in st.session_state:
     st.session_state.usuarios_registrados = {
-        "katty": "educacion2026",
-        "robin": "gestion5070",
-        "tahia": "clinica123"
+        "robin": "bowser"
     }
 
 # --- 2. BASE DE DATOS DE PACIENTES Y CITAS ---
 if "datos_usuarios" not in st.session_state:
     st.session_state.datos_usuarios = {
-        "katty": {
-            "pacientes": {
-                "Facundo": {"edad": 8, "objetivo": "Mejorar la comprensión lectora y atención", "perfil": "Muestra gran interés por los cuentos, pero se distrae a los 10 minutos."},
-                "Gaspar": {"edad": 8, "objetivo": "Desarrollar habilidades de grafomotricidad", "perfil": "Creativo, prefiere actividades visuales. Requiere apoyo en la pinza fina."}
-            },
-            "citas": [
-                {"hora": "09:00", "paciente": "Facundo", "motivo": "Sesión Semanal"},
-                {"hora": "11:30", "paciente": "Gaspar", "motivo": "Evaluación Motriz"}
-            ]
-        },
         "robin": {
             "pacientes": {
                 "Lucas": {"edad": 10, "objetivo": "Potenciar el pensamiento lógico-matemático", "perfil": "Muy hábil con la tecnología, responde bien a dinámicas gamificadas."}
@@ -36,11 +24,13 @@ if "datos_usuarios" not in st.session_state:
         }
     }
 
-# Variables de control para el inicio de sesión
+# Variables esenciales de control de acceso
 if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 if "usuario_actual" not in st.session_state:
     st.session_state.usuario_actual = ""
+if "mostrar_registro" not in st.session_state:
+    st.session_state.mostrar_registro = False
 
 def cerrar_sesion():
     st.session_state.autenticado = False
@@ -73,57 +63,63 @@ def respuesta_ia(consulta, paciente_nombre, usuario):
     *Sugerencia técnica:* Basado en el perfil registrado (*"{paciente_info['perfil']}"*), se recomienda evitar bloques extensos sin pausas activas para asegurar la motivación.
     """
 
-# --- 4. PANTALLA DE ACCESO (LOGIN & REGISTRO) ---
+# --- 4. PANTALLA DE ACCESO (FORMULARIO DIRECTO) ---
 if not st.session_state.autenticado:
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
         st.markdown("<h2 style='text-align: center;'>🧠 Sistema Hábile</h2>", unsafe_allow_html=True)
+        st.divider()
         
-        # Creamos dos pestañas: una para entrar y otra para registrarse
-        tab_login, tab_registro = st.tabs(["🔐 Iniciar Sesión", "📝 Crear Cuenta Nueva"])
-        
-        # PESTAÑA 1: INICIAR SESIÓN
-        with tab_login:
-            st.write("Ingrese sus credenciales para acceder a su panel.")
-            usuario_input = st.text_input("Usuario", key="login_user").strip().lower()
-            contrasena_input = st.text_input("Contraseña", type="password", key="login_pass")
+        # Lógica para alternar entre el Login y el Registro de forma segura
+        if not st.session_state.mostrar_registro:
+            st.write("### 🔐 Iniciar Sesión")
+            usuario_input = st.text_input("Usuario", placeholder="Ej: robin").strip().lower()
+            contrasena_input = st.text_input("Contraseña", type="password", placeholder="••••••••")
             
-            if st.button("Ingresar a la Plataforma", use_container_width=True):
+            if st.button("Ingresar a la Plataforma", use_container_width=True, type="primary"):
+                # Verificación directa contra el diccionario global y el de la sesión
                 if usuario_input in st.session_state.usuarios_registrados and st.session_state.usuarios_registrados[usuario_input] == contrasena_input:
                     st.session_state.autenticado = True
                     st.session_state.usuario_actual = usuario_input
-                    # Asegurar que el usuario tenga su espacio de datos creado
                     if usuario_input not in st.session_state.datos_usuarios:
                         st.session_state.datos_usuarios[usuario_input] = {"pacientes": {}, "citas": []}
-                    st.success(f"Bienvenido/a, {usuario_input.capitalize()}.")
+                    st.success("¡Ingreso correcto!")
                     st.rerun()
                 else:
                     st.error("Usuario o contraseña incorrectos. Por favor, intente de nuevo.")
-                    
-        # PESTAÑA 2: CREAR CUENTA NUEVA
-        with tab_registro:
-            st.write("Regístrese para obtener su propia agenda privada.")
-            nuevo_usuario = st.text_input("Elija un Nombre de Usuario", key="reg_user").strip().lower()
-            nueva_contrasena = st.text_input("Elija una Contraseña", type="password", key="reg_pass")
-            confirmar_pass = st.text_input("Confirme su Contraseña", type="password", key="reg_pass_conf")
             
-            if st.button("Registrarse y Crear Cuenta", use_container_width=True):
+            st.write("")
+            if st.button("¿No tiene una cuenta? Regístrese aquí"):
+                st.session_state.mostrar_registro = True
+                st.rerun()
+                
+        else:
+            st.write("### 📝 Crear Cuenta Nueva")
+            nuevo_usuario = st.text_input("Elija un Nombre de Usuario").strip().lower()
+            nueva_contrasena = st.text_input("Elija una Contraseña", type="password")
+            confirmar_pass = st.text_input("Confirme su Contraseña", type="password")
+            
+            if st.button("Registrarse y Crear Cuenta", use_container_width=True, type="primary"):
                 if not nuevo_usuario or not nueva_contrasena:
                     st.error("Por favor, complete todos los campos.")
-                elif nuevo_usuario in st.session_state.usuarios_registrados:
+                elif nuevo_usuario in st.session_state.usuarios_registrados or nuevo_usuario == "robin":
                     st.error("Este nombre de usuario ya está ocupado. Intente con otro.")
                 elif nueva_contrasena != confirmar_pass:
                     st.error("Las contraseñas no coinciden.")
                 else:
-                    # Guardar el nuevo usuario en el sistema
                     st.session_state.usuarios_registrados[nuevo_usuario] = nueva_contrasena
-                    # Crear su base de datos vacía inmediatamente
                     st.session_state.datos_usuarios[nuevo_usuario] = {"pacientes": {}, "citas": []}
-                    st.success("¡Cuenta creada con éxito! Ahora puede ir a la pestaña 'Iniciar Sesión' e ingresar.")
+                    st.success("¡Cuenta creada con éxito!")
+                    st.session_state.mostrar_registro = False
+                    st.rerun()
+            
+            if st.button("Volver al Inicio de Sesión"):
+                st.session_state.mostrar_registro = False
+                st.rerun()
 
 else:
-    # --- 5. APLICACIÓN PRINCIPAL (SÓLO PARA USUARIOS AUTENTICADOS) ---
+    # --- 5. APLICACIÓN PRINCIPAL ---
     usuario = st.session_state.usuario_actual
     mis_pacientes = st.session_state.datos_usuarios[usuario]["pacientes"]
     mis_citas = st.session_state.datos_usuarios[usuario]["citas"]
